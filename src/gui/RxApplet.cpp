@@ -203,13 +203,13 @@ void RxApplet::buildUI()
         lbl->setFixedWidth(34);
         row->addWidget(lbl);
 
-        m_stepDown  = mkStep("\u25C4");   // ◄
+        m_stepDown  = mkStep("<");
         m_stepLabel = new QLabel("100 Hz");
         m_stepLabel->setAlignment(Qt::AlignCenter);
         m_stepLabel->setStyleSheet(
             "QLabel { font-size: 11px; background: #0a0a18; border: 1px solid #1e2e3e; "
             "border-radius: 3px; padding: 1px 3px; }");
-        m_stepUp = mkStep("\u25BA");   // ►
+        m_stepUp = mkStep(">");
 
         // Helper: format a step value compactly.
         auto fmtStep = [](int hz) -> QString {
