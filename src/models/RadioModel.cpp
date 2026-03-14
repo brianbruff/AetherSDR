@@ -108,6 +108,15 @@ void RadioModel::onConnected()
         m_connection.sendCommand("client program AetherSDR");
         m_connection.sendCommand("client station AetherSDR");
 
+        // Request available mic inputs (comma-separated response: "MIC,BAL,LINE,ACC")
+        m_connection.sendCommand("mic list", [this](int code, const QString& body) {
+            if (code == 0) {
+                QStringList inputs = body.trimmed().split(',', Qt::SkipEmptyParts);
+                m_transmitModel.setMicInputList(inputs);
+                qDebug() << "RadioModel: mic inputs:" << inputs;
+            }
+        });
+
         if (!m_panStream.isRunning())
             m_panStream.start(&m_connection);  // also sends one-byte UDP registration
 
@@ -209,6 +218,18 @@ void RadioModel::onMessageReceived(const ParsedMessage& msg)
     const int pipe = raw.indexOf('|');
     if (pipe < 0) return;
     const QString body = raw.mid(pipe + 1);
+    // Profile status: "profile tx list=Default^..." or "profile mic list=..."
+    // Profile names contain spaces, so parseKVs() (which splits on spaces) breaks
+    // the list value.  Handle raw here, same pattern as meter status.
+    if (body.startsWith("profile tx ")) {
+        handleProfileStatusRaw("tx", body.mid(11));  // skip "profile tx "
+        return;
+    }
+    if (body.startsWith("profile mic ")) {
+        handleProfileStatusRaw("mic", body.mid(12));  // skip "profile mic "
+        return;
+    }
+
     if (!body.startsWith("meter ")) return;
 
     handleMeterStatus(body.mid(6));  // skip "meter "
@@ -586,21 +607,45 @@ void RadioModel::createDefaultSlice(const QString& freqMhz,
 void RadioModel::handleProfileStatus(const QString& object,
                                       const QMap<QString, QString>& kvs)
 {
-    // Profile status arrives as:
-    //   object = "profile tx"   kvs = { "list": "DAX^Default^macOS_default^" }
-    //   object = "profile tx"   kvs = { "current": "Default" }
-    // We only handle TX profiles for now.
-    if (!object.startsWith("profile tx"))
-        return;
+    // Profile list/current with space-containing names are handled by
+    // handleProfileStatusRaw() via onMessageReceived().  This fallback
+    // handles any remaining profile status keys that don't have spaces
+    // (e.g. "profile all unsaved_changes_tx=0").
+    Q_UNUSED(object);
+    Q_UNUSED(kvs);
+}
 
-    if (kvs.contains("list")) {
-        QStringList profiles = kvs["list"].split('^', Qt::SkipEmptyParts);
-        m_transmitModel.setProfileList(profiles);
-        qDebug() << "RadioModel: TX profiles:" << profiles;
-    }
-    if (kvs.contains("current")) {
-        m_transmitModel.setActiveProfile(kvs["current"]);
-        qDebug() << "RadioModel: active TX profile:" << kvs["current"];
+void RadioModel::handleProfileStatusRaw(const QString& profileType,
+                                         const QString& rawBody)
+{
+    // rawBody is everything after "profile tx " or "profile mic ", e.g.:
+    //   "list=Default^Default FHM-1^Default FHM-1 DX^..."
+    //   "current=Default FHM-1"
+    // We parse key=value ourselves to avoid splitting on spaces in values.
+    const int eq = rawBody.indexOf('=');
+    if (eq < 0) return;
+
+    const QString key = rawBody.left(eq).trimmed();
+    const QString val = rawBody.mid(eq + 1).trimmed();
+
+    if (profileType == "tx") {
+        if (key == "list") {
+            QStringList profiles = val.split('^', Qt::SkipEmptyParts);
+            m_transmitModel.setProfileList(profiles);
+            qDebug() << "RadioModel: TX profiles:" << profiles;
+        } else if (key == "current") {
+            m_transmitModel.setActiveProfile(val);
+            qDebug() << "RadioModel: active TX profile:" << val;
+        }
+    } else if (profileType == "mic") {
+        if (key == "list") {
+            QStringList profiles = val.split('^', Qt::SkipEmptyParts);
+            m_transmitModel.setMicProfileList(profiles);
+            qDebug() << "RadioModel: mic profiles:" << profiles;
+        } else if (key == "current") {
+            m_transmitModel.setActiveMicProfile(val);
+            qDebug() << "RadioModel: active mic profile:" << val;
+        }
     }
 }
 

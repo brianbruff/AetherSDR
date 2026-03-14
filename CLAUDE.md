@@ -30,7 +30,7 @@ cmake --build build -j$(nproc)
 
 Dependencies (Arch): `qt6-base qt6-multimedia cmake ninja pkgconf`
 
-Current version: **0.1.7** (set in both `CMakeLists.txt` and `README.md`).
+Current version: **0.1.8** (set in both `CMakeLists.txt` and `README.md`).
 
 ---
 
@@ -60,6 +60,7 @@ src/
     ├── RxApplet            — Full RX controls: antenna, filter, AGC, AF gain, pan, DSP, RIT/XIT
     ├── TxApplet            — TX controls: power gauges/sliders, profiles, ATU, TUNE/MOX
     ├── TunerApplet         — 4o3a TGXL tuner: gauges, relay bars, TUNE/OPERATE
+    ├── PhoneCwApplet       — P/CW mic controls: level/compression gauges, mic profile, PROC/DAX/MON
     └── HGauge.h            — Shared horizontal gauge widget (header-only)
 ```
 
@@ -312,7 +313,7 @@ them with `slice get <id>` rather than creating new ones.
 
 ---
 
-## What's Implemented (v0.1.7)
+## What's Implemented (v0.1.8)
 
 - UDP radio discovery and TCP command/control
 - SmartSDR V/H/R/S/M protocol parsing
@@ -335,7 +336,12 @@ them with `slice get <id>` rather than creating new ones.
 - TX applet: Fwd Power/SWR gauges, RF Power/Tune Power sliders,
   TX profile dropdown, TUNE/MOX/ATU/MEM buttons, ATU status indicators, APD
 - TransmitModel: transmit state, internal ATU state, TX profile management
-- HGauge shared header: reusable horizontal gauge widget for TunerApplet + TxApplet
+- P/CW applet: mic level gauge (-40 to +10 dB, 3-zone cyan/yellow/red) with
+  peak-hold marker, compression gauge (reversed red fill with slow decay)
+- P/CW applet: mic profile dropdown, mic source selector, mic level slider,
+  +ACC toggle, PROC/NOR-DX-DX+, DAX toggle, MON + monitor volume
+- HGauge shared header: reusable horizontal gauge widget with three-zone fill,
+  peak-hold markers, and reversed fill mode
 - TX button (sends `xmit 1` / `xmit 0`)
 - Persistent window geometry
 
@@ -346,12 +352,13 @@ them with `slice get <id>` rather than creating new ones.
 - Audio TX (microphone → radio, full VITA-49 framing)
 - Band stacking / band map
 - CW keyer / memories
+- Phone applet (PHNE)
 - Equalizer (EQ applet)
 - Full meter display (SWR, ALC, power, etc. — MeterModel has the data)
+- Meter scaling review across all gauges (S-meter, TX power, mic level, compression)
 - DAX / CAT interface
 - Spot / DX cluster integration
 - Memory channels
 - Macro / voice keyer
 - Network audio (Opus compression)
 - TNF (tracking notch filter) management
-- TX applet extensions (mic gain, compression, monitor, etc.)

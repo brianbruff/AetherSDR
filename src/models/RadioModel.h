@@ -86,6 +86,7 @@ private:
     void handleMeterStatus(const QString& rawBody);
     void handlePanadapterStatus(const QMap<QString, QString>& kvs);
     void handleProfileStatus(const QString& object, const QMap<QString, QString>& kvs);
+    void handleProfileStatusRaw(const QString& profileType, const QString& rawBody);
 
     void configurePan();
     void configureWaterfall();

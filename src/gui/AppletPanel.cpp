@@ -3,6 +3,7 @@
 #include "SMeterWidget.h"
 #include "TunerApplet.h"
 #include "TxApplet.h"
+#include "PhoneCwApplet.h"
 
 #include <QPushButton>
 #include <QScrollArea>
@@ -150,7 +151,13 @@ AppletPanel::AppletPanel(QWidget* parent) : QWidget(parent)
     m_txApplet->show();
 
     addApplet("PHNE", makePlaceholder("PHNE"));
-    addApplet("P/CW", makePlaceholder("P/CW"));
+
+    // P/CW applet — visible by default
+    m_phoneCwApplet = new PhoneCwApplet;
+    addApplet("P/CW", m_phoneCwApplet);
+    static_cast<QPushButton*>(btnLayout->itemAt(btnLayout->count() - 1)->widget())->setChecked(true);
+    m_phoneCwApplet->show();
+
     addApplet("EQ",   makePlaceholder("EQ"));
 
     btnLayout->addStretch();

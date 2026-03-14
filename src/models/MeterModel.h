@@ -64,12 +64,25 @@ public:
     // Convenience: SWR.
     float swr() const { return m_swr; }
 
+    // Convenience: mic peak level (dBFS) and compression peak (dB).
+    float micPeak()  const { return m_micPeak; }
+    float compPeak() const { return m_compPeak; }
+
+    // Convenience: instantaneous mic level and compression (non-peak).
+    float micLevel() const { return m_micLevel; }
+    float compLevel() const { return m_compLevel; }
+
 signals:
     // Emitted when the S-meter value changes (dBm).
     void sLevelChanged(float dbm);
 
     // Emitted when TX meters change (power, SWR).
     void txMetersChanged(float fwdPower, float swr);
+
+    // Emitted when mic meters change (instantaneous level, compression,
+    // and peak values for peak-hold markers).
+    void micMetersChanged(float micLevel, float compLevel,
+                          float micPeak, float compPeak);
 
     // Emitted when any meter value changes (for debug/generic display).
     void meterUpdated(int index, float value);
@@ -84,11 +97,19 @@ private:
     int m_sLevelIdx{-1};     // "SLC" / "LEVEL"
     int m_fwdPwrIdx{-1};     // "FWDPWR"
     int m_swrIdx{-1};        // "SWR"
+    int m_micPeakIdx{-1};    // "TX" / "MICPEAK"
+    int m_compPeakIdx{-1};   // "TX" / "COMPPEAK"
+    int m_micLevelIdx{-1};   // "TX" / "MIC" (instantaneous)
+    int m_compLevelIdx{-1};  // "TX" / "COMP" (instantaneous)
 
     // Cached values
     float m_sLevel{-130.0f};
     float m_fwdPower{0.0f};
     float m_swr{1.0f};
+    float m_micPeak{-50.0f};
+    float m_compPeak{0.0f};
+    float m_micLevel{-50.0f};
+    float m_compLevel{0.0f};
 };
 
 } // namespace AetherSDR

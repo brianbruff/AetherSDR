@@ -40,6 +40,18 @@ public:
     bool    isTuning()      const { return m_tune; }
     bool    isMox()         const { return m_mox; }
 
+    // ── Mic / monitor / processor getters ─────────────────────────────────
+    QString micSelection()          const { return m_micSelection; }
+    int     micLevel()              const { return m_micLevel; }
+    bool    micAcc()                const { return m_micAcc; }
+    bool    speechProcessorEnable() const { return m_speechProcEnable; }
+    int     speechProcessorLevel()  const { return m_speechProcLevel; }
+    bool    companderOn()           const { return m_companderOn; }
+    int     companderLevel()        const { return m_companderLevel; }
+    bool    daxOn()                 const { return m_daxOn; }
+    bool    sbMonitor()             const { return m_sbMonitor; }
+    int     monGainSb()             const { return m_monGainSb; }
+
     // ── ATU getters ─────────────────────────────────────────────────────────
     bool      atuEnabled()      const { return m_atuEnabled; }
     ATUStatus atuStatus()       const { return m_atuStatus; }
@@ -47,14 +59,20 @@ public:
     bool      usingMemory()     const { return m_usingMemory; }
 
     // ── Profile getters ─────────────────────────────────────────────────────
-    QStringList profileList()    const { return m_profileList; }
-    QString     activeProfile()  const { return m_activeProfile; }
+    QStringList profileList()       const { return m_profileList; }
+    QString     activeProfile()     const { return m_activeProfile; }
+    QStringList micProfileList()    const { return m_micProfileList; }
+    QString     activeMicProfile()  const { return m_activeMicProfile; }
+    QStringList micInputList()      const { return m_micInputList; }
 
     // ── Status parsing (called from RadioModel) ─────────────────────────────
     void applyTransmitStatus(const QMap<QString, QString>& kvs);
     void applyAtuStatus(const QMap<QString, QString>& kvs);
     void setProfileList(const QStringList& profiles);
     void setActiveProfile(const QString& profile);
+    void setMicProfileList(const QStringList& profiles);
+    void setActiveMicProfile(const QString& profile);
+    void setMicInputList(const QStringList& inputs);
 
     // ── Command methods (emit commandReady) ─────────────────────────────────
     void setRfPower(int power);
@@ -67,12 +85,26 @@ public:
     void setAtuMemories(bool on);
     void loadProfile(const QString& name);
 
+    // ── Mic / monitor / processor commands ────────────────────────────────
+    void setMicSelection(const QString& input);
+    void setMicLevel(int level);
+    void setMicAcc(bool on);
+    void setSpeechProcessorEnable(bool on);
+    void setSpeechProcessorLevel(int level);
+    void setDax(bool on);
+    void setSbMonitor(bool on);
+    void setMonGainSb(int gain);
+    void loadMicProfile(const QString& name);
+
 signals:
     void stateChanged();
     void tuneChanged(bool tuning);
     void moxChanged(bool mox);
     void atuStateChanged();
     void profileListChanged();
+    void micStateChanged();
+    void micProfileListChanged();
+    void micInputListChanged();
     void commandReady(const QString& cmd);
 
 private:
@@ -84,6 +116,18 @@ private:
     bool m_tune{false};
     bool m_mox{false};
 
+    // Mic / monitor / processor state
+    QString m_micSelection{"MIC"};
+    int     m_micLevel{50};
+    bool    m_micAcc{false};
+    bool    m_speechProcEnable{false};
+    int     m_speechProcLevel{0};
+    bool    m_companderOn{false};
+    int     m_companderLevel{0};
+    bool    m_daxOn{false};
+    bool    m_sbMonitor{false};
+    int     m_monGainSb{50};
+
     // ATU state
     bool      m_atuEnabled{false};
     ATUStatus m_atuStatus{ATUStatus::None};
@@ -93,6 +137,11 @@ private:
     // TX profiles
     QStringList m_profileList;
     QString     m_activeProfile;
+
+    // Mic profiles
+    QStringList m_micProfileList;
+    QString     m_activeMicProfile;
+    QStringList m_micInputList;
 };
 
 } // namespace AetherSDR

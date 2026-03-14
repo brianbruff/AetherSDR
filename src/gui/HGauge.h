@@ -3,6 +3,8 @@
 #include <QPainter>
 #include <QWidget>
 #include <QVector>
+#include <cmath>
+#include <limits>
 
 namespace AetherSDR {
 
@@ -20,9 +22,11 @@ public:
 
     HGauge(float min, float max, float redStart,
            const QString& label, const QString& unit,
-           const QVector<Tick>& ticks, QWidget* parent = nullptr)
+           const QVector<Tick>& ticks, QWidget* parent = nullptr,
+           float yellowStart = std::numeric_limits<float>::quiet_NaN())
         : QWidget(parent)
         , m_min(min), m_max(max), m_redStart(redStart)
+        , m_yellowStart(std::isnan(yellowStart) ? redStart : yellowStart)
         , m_label(label), m_unit(unit), m_ticks(ticks)
     {
         setFixedHeight(24);
@@ -35,9 +39,19 @@ public:
         update();
     }
 
+    void setPeakValue(float v) {
+        if (qFuzzyCompare(m_peakValue, v)) return;
+        m_peakValue = v;
+        m_peakEnabled = true;
+        update();
+    }
+
+    void setReversed(bool rev) { m_reversed = rev; update(); }
+
     void setRange(float min, float max, float redStart,
-                  const QVector<Tick>& ticks) {
+                  const QVector<Tick>& ticks, float yellowStart = std::numeric_limits<float>::quiet_NaN()) {
         m_min = min; m_max = max; m_redStart = redStart;
+        m_yellowStart = std::isnan(yellowStart) ? redStart : yellowStart;
         m_ticks = ticks;
         update();
     }
@@ -62,19 +76,54 @@ protected:
         // Filled portion
         float frac = qBound(0.0f, (m_value - m_min) / (m_max - m_min), 1.0f);
         int fillW = static_cast<int>(frac * barW);
-        float redFrac = (m_redStart - m_min) / (m_max - m_min);
-        int redX = static_cast<int>(redFrac * barW);
 
-        if (fillW > 0) {
-            // Cyan portion (below red zone)
-            int cyanW = qMin(fillW, redX);
-            if (cyanW > 0)
-                p.fillRect(barX + 1, barY + 1, cyanW, barH - 2, QColor(0x00, 0xb4, 0xd8));
+        if (m_reversed) {
+            // Reversed: bar fills from right to left, single color.
+            // frac=1 (max) means empty, frac=0 (min) means full bar.
+            int revFillW = barW - fillW;
+            if (revFillW > 0)
+                p.fillRect(barX + fillW + 1, barY + 1, revFillW - 2, barH - 2, QColor(0xff, 0x44, 0x44));
+        } else {
+            // Normal: three zones cyan → yellow → red
+            int yellowX = static_cast<int>(((m_yellowStart - m_min) / (m_max - m_min)) * barW);
+            int redX = static_cast<int>(((m_redStart - m_min) / (m_max - m_min)) * barW);
 
-            // Red portion (above red zone)
-            if (fillW > redX) {
-                int rw = fillW - redX;
-                p.fillRect(barX + redX + 1, barY + 1, rw, barH - 2, QColor(0xff, 0x44, 0x44));
+            if (fillW > 0) {
+                // Cyan portion (below yellow zone)
+                int cyanW = qMin(fillW, yellowX);
+                if (cyanW > 0)
+                    p.fillRect(barX + 1, barY + 1, cyanW, barH - 2, QColor(0x00, 0xb4, 0xd8));
+
+                // Yellow portion (between yellow and red zones)
+                if (fillW > yellowX && yellowX < redX) {
+                    int yw = qMin(fillW, redX) - yellowX;
+                    if (yw > 0)
+                        p.fillRect(barX + yellowX + 1, barY + 1, yw, barH - 2, QColor(0xdd, 0xbb, 0x00));
+                }
+
+                // Red portion (above red zone)
+                if (fillW > redX) {
+                    int rw = fillW - redX;
+                    p.fillRect(barX + redX + 1, barY + 1, rw, barH - 2, QColor(0xff, 0x44, 0x44));
+                }
+            }
+        }
+
+        // Peak-hold marker (thin white vertical line)
+        if (m_peakEnabled) {
+            float peakFrac = qBound(0.0f, (m_peakValue - m_min) / (m_max - m_min), 1.0f);
+            int peakX = barX + static_cast<int>(peakFrac * barW);
+            if (m_reversed) {
+                // In reversed mode, peak is the lowest value (most compression)
+                if (peakX > barX && peakX < barX + barW - 1) {
+                    p.setPen(QColor(0xff, 0xff, 0xff));
+                    p.drawLine(peakX, barY + 1, peakX, barY + barH - 2);
+                }
+            } else {
+                if (peakX > barX && peakX < barX + barW - 1) {
+                    p.setPen(QColor(0xff, 0xff, 0xff));
+                    p.drawLine(peakX, barY + 1, peakX, barY + barH - 2);
+                }
             }
         }
 
@@ -86,8 +135,10 @@ protected:
         for (const auto& tick : m_ticks) {
             float tf = (tick.value - m_min) / (m_max - m_min);
             int tx = barX + static_cast<int>(tf * barW);
-            bool isRed = (tick.value >= m_redStart);
-            p.setPen(isRed ? QColor(0xff, 0x44, 0x44) : QColor(0xc8, 0xd8, 0xe8));
+            QColor tickColor = (tick.value >= m_redStart) ? QColor(0xff, 0x44, 0x44)
+                             : (tick.value >= m_yellowStart) ? QColor(0xdd, 0xbb, 0x00)
+                             : QColor(0xc8, 0xd8, 0xe8);
+            p.setPen(tickColor);
             const QFontMetrics fm(tickFont);
             int tw = fm.horizontalAdvance(tick.label);
             // Center label on tick position, clamp to widget bounds
@@ -107,8 +158,11 @@ protected:
     }
 
 private:
-    float m_min, m_max, m_redStart;
+    float m_min, m_max, m_redStart, m_yellowStart;
     float m_value{0.0f};
+    float m_peakValue{0.0f};
+    bool  m_peakEnabled{false};
+    bool  m_reversed{false};
     QString m_label, m_unit;
     QVector<Tick> m_ticks;
 };

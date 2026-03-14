@@ -3,7 +3,7 @@
 A Linux-native SmartSDR-compatible client for FlexRadio Systems transceivers,
 built with **Qt6** and **C++20**.
 
-Current version: **0.1.7**
+Current version: **0.1.8**
 
 ---
 
@@ -46,6 +46,12 @@ Current version: **0.1.7**
 | TX applet — TUNE/MOX/ATU/MEM buttons + ATU status indicators | ✅ |
 | TX applet — APD button with Active/Cal/Avail status inset | ✅ |
 | TransmitModel — transmit state, ATU state, profile management | ✅ |
+| P/CW applet — mic level gauge with peak hold (-40 to +10 dB, 3-zone) | ✅ |
+| P/CW applet — compression gauge (reversed fill, peak hold with slow decay) | ✅ |
+| P/CW applet — mic profile dropdown (live from radio) | ✅ |
+| P/CW applet — mic source selector, mic level slider, +ACC toggle | ✅ |
+| P/CW applet — PROC button + NOR/DX/DX+ 3-position slider + DAX toggle | ✅ |
+| P/CW applet — MON button + monitor volume slider | ✅ |
 | Audio TX (microphone → radio) | ⚠️ stub |
 | Volume / mute control | ✅ |
 | TX button | ✅ |
@@ -79,6 +85,7 @@ src/
     ├── RxApplet.h/.cpp          # Full RX controls applet
     ├── TxApplet.h/.cpp          # TX controls applet (power, ATU, profiles)
     ├── TunerApplet.h/.cpp       # TGXL tuner applet
+    ├── PhoneCwApplet.h/.cpp     # P/CW mic controls applet
     └── HGauge.h                 # Shared horizontal gauge widget (header-only)
 ```
 
@@ -226,6 +233,29 @@ model-driven dial updates back to the radio.
 
 ## Changelog
 
+### v0.1.8
+- P/CW applet: mic level horizontal gauge (-40 to +10 dB) with three-zone
+  colouring (cyan/yellow/red) and peak-hold white marker, fed by VITA-49
+  MIC and MICPEAK meters (PCC 0x8002, source COD-)
+- P/CW applet: compression gauge (reversed fill, red bar) with client-side
+  peak hold and slow decay (0.5 dB/update), fed by COMPPEAK meter
+- P/CW applet: mic profile dropdown populated live from `profile mic list=`
+  status, loads profiles via `profile mic load "<name>"`
+- P/CW applet: mic source selector (MIC/BAL/LINE/ACC/PC), mic level slider,
+  +ACC accessory mixing toggle
+- P/CW applet: PROC (speech processor) toggle, NOR/DX/DX+ 3-position slider,
+  DAX toggle
+- P/CW applet: MON (sideband monitor) toggle + monitor volume slider
+- TransmitModel: extended with mic selection, mic level, mic ACC, speech
+  processor enable/level, DAX, sideband monitor, monitor gain, and mic
+  profile list/current state; command methods for all new controls
+- MeterModel: added MIC/MICPEAK/COMPPEAK cached indices and instantaneous
+  mic level tracking; new micMetersChanged signal with 4 parameters
+- RadioModel: raw profile status parsing for `profile mic` (handles profile
+  names containing spaces); `mic list` command on connect
+- HGauge: three-zone fill (cyan → yellow → red) with configurable yellowStart,
+  peak-hold white vertical marker, reversed fill mode for compression
+
 ### v0.1.7
 - TX applet: Forward Power (0–120 W) and SWR (1.0–3.0) horizontal gauges fed
   by radio meter data (VITA-49 PCC 0x8002)
@@ -333,6 +363,9 @@ model-driven dial updates back to the radio.
 - [ ] **Tuner SWR capture inaccurate**: TGXL autotune result SWR displayed on the
   TUNE button does not match the actual settled SWR (shows ~1.5x instead of
   ~1.01–1.15). Race between VITA-49 meter data (UDP) and tuning=0 status (TCP).
+- [ ] **Meter scaling needs review**: Level meters across all gauges (S-meter, TX
+  power, mic level, compression) may have scaling/range issues that need
+  comparison with SmartSDR reference.
 
 ---
 

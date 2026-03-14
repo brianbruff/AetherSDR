@@ -7,6 +7,7 @@
 #include "SMeterWidget.h"
 #include "TunerApplet.h"
 #include "TxApplet.h"
+#include "PhoneCwApplet.h"
 #include "models/SliceModel.h"
 #include "models/MeterModel.h"
 #include "models/TunerModel.h"
@@ -131,6 +132,11 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_radioModel.meterModel(), &MeterModel::txMetersChanged,
             m_appletPanel->txApplet(), &TxApplet::updateMeters);
     m_appletPanel->txApplet()->setTransmitModel(m_radioModel.transmitModel());
+
+    // ── P/CW applet: mic meters + model ──────────────────────────────────────
+    connect(m_radioModel.meterModel(), &MeterModel::micMetersChanged,
+            m_appletPanel->phoneCwApplet(), &PhoneCwApplet::updateMeters);
+    m_appletPanel->phoneCwApplet()->setTransmitModel(m_radioModel.transmitModel());
 
     // ── Audio level meter ──────────────────────────────────────────────────
     connect(&m_audio, &AudioEngine::levelChanged,
